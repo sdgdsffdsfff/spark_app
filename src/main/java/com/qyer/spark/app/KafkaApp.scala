@@ -18,21 +18,25 @@ class KafkaApp {
 object KafkaApp{
   def logger = Logger.getLogger(KafkaApp.getClass.getName)
 
-  object RedisClient extends Serializable {
-    //val redisHost = "172.1.1.186"
-    val redisHost = "master"
-    val redisPort = 6379
-    val redisTimeout = 30000
-    lazy val pool = new JedisPool(new GenericObjectPoolConfig(), redisHost, redisPort, redisTimeout)
-
-    lazy val hook = new Thread {
-      override def run = {
-        println("Execute hook thread: " + this)
-        pool.destroy()
-      }
-    }
-    sys.addShutdownHook(hook.run)
-  }
+  /**
+   * 创建redis连接实例，但是多个分区输出时会出现任务堵死情况，暂不使用
+   * @param args
+   */
+//  object RedisClient extends Serializable {
+//    //val redisHost = "172.1.1.186"
+//    val redisHost = "master"
+//    val redisPort = 6379
+//    val redisTimeout = 30000
+//    lazy val pool = new JedisPool(new GenericObjectPoolConfig(), redisHost, redisPort, redisTimeout)
+//
+//    lazy val hook = new Thread {
+//      override def run = {
+//        println("Execute hook thread: " + this)
+//        pool.destroy()
+//      }
+//    }
+//    sys.addShutdownHook(hook.run)
+//  }
 
   def main(args: Array[String]) {
     val sparkConf = new SparkConf().setAppName("KafkaApp")
@@ -41,21 +45,26 @@ object KafkaApp{
 
     val ssc = new StreamingContext(sparkConf, Seconds(5))
 
+    //获取客户端传递的参数
     val Array(zkQuorum, group, topics, numThreads) = args
-    //val topicMap = topics.split(",").map((_,numThreads.toInt)).toMap
+
     val topicMap = Map(topics -> 1)
+    //获取多个receiver union后的数据
     val kafkaDStreams = {
+      //获取kafka输入的dstream，并按照分区启动numThreads个receivers
       val streams = (1 to numThreads.toInt).map { _ =>
         KafkaUtils.createStream(ssc, zkQuorum, group, topicMap).map(_._2)
       }
-      val unionDStream = ssc.union(streams)
+      val unionDStream = ssc.union(streams)//进行union操作，即将多个receivers的记过union
       val sparkProcessingParallelism = 1
       unionDStream.repartition(sparkProcessingParallelism)
     }
 
-    //val lines = KafkaUtils.createStream(ssc, zkQuorum, group, topicMap).map(_._2)
+
     logger.info("开始执行")
+    //按照分隔符进行分割不同的字段
     val results=kafkaDStreams.map(_.split("\\#\\|\\~"))
+    //获取deviceid，经度、纬度
     val result=results.map(line =>{
       if (line.size >3)
         (line(1),line(2),line(3))
@@ -64,19 +73,12 @@ object KafkaApp{
     })
 
 
+    //将按照分区进行数据的输出，输出到redis实例
     result.foreachRDD(rdd =>{
       rdd.foreachPartition(partitionOfRecords =>{
         partitionOfRecords.foreach(pair =>{
-//          val deviceid=pair._1
-//          val lat=pair._2
-//          val lon=pair._3
-//          val jedis=RedisClient.pool.getResource
-//          if (!lat.equals("") && !lon.equals("")){
-//            logger.info("记录存储……，deviceid:"+deviceid)
-//            jedis.hsetnx("app_open",deviceid.toString,lat.toString+"-"+lon.toString)
-//            RedisClient.pool.returnResource(jedis)
-//          }
 
+          //创建redis实例
           object InternalRedisClient extends Serializable {
 
             @transient private var pool: JedisPool = null
@@ -126,7 +128,7 @@ object KafkaApp{
           val deviceid=pair._1
           val lat=pair._2
           val lon=pair._3
-          val jedis=InternalRedisClient.getPool.getResource
+          val jedis=InternalRedisClient.getPool.getResource//获取redis的连接池
           if (!lat.equals("") && !lon.equals("")){
             logger.info("记录存储……，deviceid:"+deviceid)
             jedis.hsetnx("app_open",deviceid.toString,lat.toString+"-"+lon.toString)
@@ -139,8 +141,5 @@ object KafkaApp{
     ssc.awaitTermination()  // 计算完毕退出
   }
 
-//  def main(args: Array[String]) {
-//    val s="0#|~1B828163-2251-4D8E-ADB0-ADE4EC70FE82#|~23.32224923200873#|~107.5861455080933#|~1434330000#|~6.3#|~App%20Store#|~iPhone7,1#|~ios%208.3#|~#|~#|~#|~1434330000#|~qyer_ios#|~cd254439\n208ab658ddf9#|~#|~#|~#|~#|~1434328898#|~#|~#|~222.218.211.35#|~/qyer/recommands/trip#|~a:11:{s:6:\"action\";s:4:\"trip\";s:15:\"app_installtime\";s:10:\"1434328898\";s:5:\"count\";s:2:\"10\";s:\n4:\"page\";s:1:\"2\";s:4:\"type\";s:5:\"index\";s:1:\"v\";s:1:\"1\";s:6:\"__utma\";s:54:\"253397513.530962400.1434328948.1434328948.1434328948.1\";s:6:\"__utmb\";s:25:\"253397513.1.10.1434328948\";s:6:\n\"__utmz\";s:70:\"253397513.1434328948.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)\";s:5:\"_guid\";s:36:\"04af6001-dcae-8bbf-c047-aba0208ad0a0\";s:8:\"_session\";s:13:\"1434328918255\";}"
-//    println(s.split("\\#\\|\\~")(3))
-//  }
+
 }
