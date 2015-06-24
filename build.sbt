@@ -1,4 +1,4 @@
-name := "test1"
+name := "spark_app"
 
 version := "1.0"
 

@@ -12,7 +12,7 @@ import redis.clients.jedis.JedisPool
  */
 class KafkaApp {
   //执行那个spark任务
-  //./spark-submit --class "com.qyer.spark.app.KafkaApp" --master "spark://boss:7077" --jars $(echo /root/wangzhen/all_lib/*.jar | tr ' ' ',') --total-executor-cores 6  /root/wangzhen/test1/test1.jar master:2181/cloud/kafka 1 app_open 4
+  //./spark-submit --class "com.qyer.spark.app.KafkaApp" --master "spark://boss:7077" --jars $(echo /root/wangzhen/all_lib/*.jar | tr ' ' ',') --total-executor-cores 6  /root/wangzhen/spark_app/spark_app.jar master:2181/cloud/kafka 1 app_open 4
 }
 
 object KafkaApp{
