@@ -35,7 +35,6 @@ object KafkaApp{
   }
 
   def main(args: Array[String]) {
-    //System.setProperty("spark.scheduler.mode", "FAIR")
     val sparkConf = new SparkConf().setAppName("KafkaApp")
     // 创建StreamingContext，1秒一个批次
 
