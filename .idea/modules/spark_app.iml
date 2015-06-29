@@ -51,7 +51,6 @@
     <orderEntry type="library" name="SBT: commons-beanutils:commons-beanutils:1.7.0:jar" level="project" />
     <orderEntry type="library" name="SBT: commons-beanutils:commons-beanutils-core:1.8.0:jar" level="project" />
     <orderEntry type="library" name="SBT: commons-cli:commons-cli:1.2:jar" level="project" />
-    <orderEntry type="library" name="SBT: commons-codec:commons-codec:1.4:jar" level="project" />
     <orderEntry type="library" name="SBT: commons-collections:commons-collections:3.2.1:jar" level="project" />
     <orderEntry type="library" name="SBT: commons-configuration:commons-configuration:1.6:jar" level="project" />
     <orderEntry type="library" name="SBT: commons-digester:commons-digester:1.8:jar" level="project" />
@@ -143,5 +142,9 @@
     <orderEntry type="library" name="SBT: redis.clients:jedis:2.7.2:jar" level="project" />
     <orderEntry type="library" name="SBT: stax:stax-api:1.0.1:jar" level="project" />
     <orderEntry type="library" name="SBT: xmlenc:xmlenc:0.52:jar" level="project" />
+    <orderEntry type="library" name="SBT: commons-codec:commons-codec:1.6:jar" level="project" />
+    <orderEntry type="library" name="SBT: org.apache.httpcomponents:httpclient:4.2.5:jar" level="project" />
+    <orderEntry type="library" name="SBT: org.apache.httpcomponents:httpcore:4.2.4:jar" level="project" />
+    <orderEntry type="library" name="SBT: org.apache.thrift:libthrift:0.9.2:jar" level="project" />
   </component>
 </module>

@@ -1,11 +1,15 @@
 package com.qyer.spark.app
 
+import com.qyer.rpc.dataservice.{IpforCity, CityInfo, CommonServiceServer}
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.kafka.KafkaUtils
 import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.apache.thrift.protocol.{TProtocol, TBinaryProtocol}
+import org.apache.thrift.transport.{TTransport, TSocket}
 import redis.clients.jedis.JedisPool
+
 
 /**
  * Created by wangzhen on 15/6/17.
@@ -66,10 +70,10 @@ object KafkaApp{
     val results=kafkaDStreams.map(_.split("\\#\\|\\~"))
     //获取deviceid，经度、纬度
     val result=results.map(line =>{
-      if (line.size >3)
-        (line(1),line(2),line(3))
+      if (line.size >22)
+        (line(1),line(2),line(3),line(22))
       else
-        (0,0,0)
+        (0,0,0,0)
     })
 
 
@@ -77,6 +81,16 @@ object KafkaApp{
     result.foreachRDD(rdd =>{
       rdd.foreachPartition(partitionOfRecords =>{
         partitionOfRecords.foreach(pair =>{
+
+//          //创建thrift实例
+//          val transport = new TSocket("localhost", 8989);
+//          val protocol = new TBinaryProtocol(transport);
+//          val client = new Client(protocol);
+//          transport.open();
+//          //System.out.println(client.sayWord("welcome to use thrift..."));
+//          transport.close();
+
+
 
           //创建redis实例
           object InternalRedisClient extends Serializable {
@@ -95,7 +109,6 @@ object KafkaApp{
                 val poolConfig = new GenericObjectPoolConfig()
                 poolConfig.setMaxTotal(maxTotal)
                 poolConfig.setMaxIdle(maxIdle)
-                poolConfig.setMinIdle(minIdle)
                 poolConfig.setMinIdle(minIdle)
                 poolConfig.setTestOnBorrow(testOnBorrow)
                 poolConfig.setTestOnReturn(testOnReturn)
@@ -128,10 +141,20 @@ object KafkaApp{
           val deviceid=pair._1
           val lat=pair._2
           val lon=pair._3
+          val ip=pair._4
+          val cityName = {
+            if (ip.toString.equals("0")){
+              "0"
+            }else{
+              IpforCity.ip2CityId(ip.toString).getCity()
+            }
+
+
+        }
           val jedis=InternalRedisClient.getPool.getResource//获取redis的连接池
           if (!lat.equals("") && !lon.equals("")){
             logger.info("记录存储……，deviceid:"+deviceid)
-            jedis.hsetnx("app_open",deviceid.toString,lat.toString+"-"+lon.toString)
+            jedis.hset("app_open",deviceid.toString,lat.toString+"|"+lon.toString+"|"+cityName.toString)
             InternalRedisClient.getPool.returnResource(jedis)
           }
         })

@@ -14,6 +14,11 @@ libraryDependencies +="org.json" % "json" % "20141113"
 
 libraryDependencies +="log4j" % "log4j" % "1.2.17"
 
+libraryDependencies +="org.apache.thrift" % "libthrift" % "0.9.2"
+
 libraryDependencies +="redis.clients" % "jedis" % "2.7.2"
+
+
+
 
 
