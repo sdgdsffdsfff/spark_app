@@ -31,25 +31,6 @@ object KafkaApp{
   implicit val formats = DefaultFormats
   case class Mailserver(track_deviceid: String,lat: String, lon: String,ip: String)
 
-  /**
-   * 创建redis连接实例，但是多个分区输出时会出现任务堵死情况，暂不使用
-   * @param args
-   */
-//  object RedisClient extends Serializable {
-//    //val redisHost = "172.1.1.186"
-//    val redisHost = "master"
-//    val redisPort = 6379
-//    val redisTimeout = 30000
-//    lazy val pool = new JedisPool(new GenericObjectPoolConfig(), redisHost, redisPort, redisTimeout)
-//
-//    lazy val hook = new Thread {
-//      override def run = {
-//        println("Execute hook thread: " + this)
-//        pool.destroy()
-//      }
-//    }
-//    sys.addShutdownHook(hook.run)
-//  }
 
   def main(args: Array[String]) {
     val sparkConf = new SparkConf().setAppName("KafkaApp")
@@ -75,15 +56,6 @@ object KafkaApp{
 
 
     logger.info("开始执行")
-//    //按照分隔符进行分割不同的字段
-//    val results=kafkaDStreams.map(_.split("\\#\\|\\~"))
-//    //获取deviceid，经度、纬度
-//    val result=results.map(line =>{
-//      if (line.size >22)
-//        (line(1),line(2),line(3),line(22))
-//      else
-//        (0,0,0,0)
-//    })
     val result=kafkaDStreams.map(line =>{
       try {
 
@@ -101,52 +73,6 @@ object KafkaApp{
       rdd.foreachPartition(partitionOfRecords =>{
         partitionOfRecords.foreach(pair =>{
 
-//          //创建redis实例
-//          object InternalRedisClient extends Serializable {
-//
-//            @transient private var pool: JedisPool = null
-//
-//            def makePool(redisHost: String, redisPort: Int, redisTimeout: Int,
-//                         maxTotal: Int, maxIdle: Int, minIdle: Int): Unit = {
-//              makePool(redisHost, redisPort, redisTimeout, maxTotal, maxIdle, minIdle, true, false, 10000)
-//            }
-//
-//            def makePool(redisHost: String, redisPort: Int, redisTimeout: Int,
-//                         maxTotal: Int, maxIdle: Int, minIdle: Int, testOnBorrow: Boolean,
-//                         testOnReturn: Boolean, maxWaitMillis: Long): Unit = {
-//              if(pool == null) {
-//                val poolConfig = new GenericObjectPoolConfig()
-//                poolConfig.setMaxTotal(maxTotal)
-//                poolConfig.setMaxIdle(maxIdle)
-//                poolConfig.setMinIdle(minIdle)
-//                poolConfig.setTestOnBorrow(testOnBorrow)
-//                poolConfig.setTestOnReturn(testOnReturn)
-//                poolConfig.setMaxWaitMillis(maxWaitMillis)
-//                pool = new JedisPool(poolConfig, redisHost, redisPort, redisTimeout)
-//
-//                val hook = new Thread{
-//                  override def run = pool.destroy()
-//                }
-//                sys.addShutdownHook(hook.run)
-//              }
-//            }
-//
-//            def getPool: JedisPool = {
-//              assert(pool != null)
-//              pool
-//            }
-//          }
-
-//          // Redis configurations
-//          val maxTotal = 1024
-//          val maxIdle = 50
-//          val minIdle = 1
-//          val redisHost = "master"
-//          val redisPort = 6379
-//          val redisTimeout = 30000
-//          val dbIndex = 1
-//          InternalRedisClient.makePool(redisHost, redisPort, redisTimeout, maxTotal, maxIdle, minIdle)
-
           val deviceid=pair._1
           val lat=pair._2
           val lon=pair._3
@@ -160,27 +86,9 @@ object KafkaApp{
 
 
         }
-//          var jedis=new Jedis
-//          try{
-//            jedis=InternalRedisClient.getPool.getResource//获取redis的连接池
-//            if (!lat.equals("") && !lon.equals("")){
-//              logger.info("记录存储……，deviceid:"+deviceid)
-//              jedis.hset("app_open",deviceid.toString,lat.toString+"|"+lon.toString+"|"+cityName.toString)
-//
-//            }
-//          }catch{
-//            case e:JedisConnectionException =>
-//              InternalRedisClient.getPool.returnResourceObject(jedis)
-//            case e:JedisException =>
-//              InternalRedisClient.getPool.returnResourceObject(jedis)
-//
-//          }finally {
-//            InternalRedisClient.getPool.returnResourceObject(jedis)
-//
-//          }
 
           if (!lat.equals("") && !lon.equals("")){
-            logger.info("记录存储……，deviceid:"+deviceid)
+            //logger.info("记录存储……，deviceid:"+deviceid)
             try{
               val jedis=RedisUtil.getJedis()
               jedis.hset("app_open",deviceid.toString,lat.toString+"|"+lon.toString+"|"+cityName.toString)
